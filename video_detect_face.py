@@ -16,20 +16,22 @@ def draw_bounding_box(img, points):
 	print("TODO")
 	print(BREAK_LINE)
 
-def draw_facial_points(img, points):
+def draw_facial_points(img, points, square_size):
 	print("---------")
 	print(points[0])
 	print(len(points))
 	print(len(points[0]))
-	mask_left = -2
-	mask_right = 3
+	mask_left = -1 * (square_size // 2)
+	mask_right = square_size - mask_left
 	pixels = img.load()
+	
 	for i in range(len(points[0])):
 		for j in range(len(points) // 2):
 			for x in range(mask_left, mask_right):
 				for y in range(mask_left, mask_right):
 					pixels[x + round(float(points[j][i])),
 					y + round(float(points[j + 5][i]))] = (0, 255, 0)
+	
 	return img
 
 
