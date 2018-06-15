@@ -13,26 +13,22 @@ BREAK_LINE = "\n\n---------------------------------------\n\n"
 
 def draw_bounding_boxes(img, boxes, edge_width):
 	draw = ImageDraw.Draw(img)
-	left = -1 * (edge_width // 2)
 
 	for i in range(len(boxes)):
 		box = []
 		for j in range(4):
-			box.append(int(round(boxes[i][j])) + left)
+			box.append(int(round(boxes[i][j])))
 		
-		#TODO verify if edge is out of image range
-		for j in range(edge_width):
-			draw.rectangle( [x + y for x, y in zip(box, [j] * len(box))],
-				outline = (0, 255, 0)  )
+		#TODO: verify if edge is out of image range
+		draw.line( [ (box[0], box[1]), (box[2], box[1]),
+			(box[2], box[3]), (box[0], box[3]), (box[0], box[1]) ],
+			fill = (0, 255, 0), width = edge_width  )
 	
 	del draw
 	return img
 
 def draw_facial_points(img, points, square_size):
-	print("---------")
-	print(points[0])
-	print(len(points))
-	print(len(points[0]))
+	#TODO: verify if points are out of image range when drawing
 	mask_left = -1 * (square_size // 2)
 	mask_right = square_size + mask_left
 	pixels = img.load()
@@ -73,7 +69,6 @@ if (len(sys.argv) == 2):
 	pilimg = draw_bounding_boxes(pilimg, total_boxes, 5)
 	pilimg = draw_facial_points(pilimg, points, 5)
 	pilimg.show()
-	print(total_boxes)
 
 else:
 	print(BREAK_LINE)
