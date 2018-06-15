@@ -43,7 +43,7 @@ if (len(sys.argv) == 2):
 	print(BREAK_LINE)
 
 	filepath = sys.argv[1]
-	img = misc.imread(path)
+	img = misc.imread(filepath)
 
 	total_boxes, points = detect_face.detect_face(img, MINSIZE, pnet, rnet, onet,
 		THRESHOLD, FACTOR)
@@ -54,8 +54,8 @@ if (len(sys.argv) == 2):
 	print("\n\n")
 	print(points)
 
-	pilimg = Image.open(path)
-	pilimg = paint_points(pilimg, points)
+	pilimg = Image.open(filepath)
+	pilimg = draw_facial_points(pilimg, points)
 	pilimg.show()
 
 else:
