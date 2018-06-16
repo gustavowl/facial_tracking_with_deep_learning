@@ -37,7 +37,7 @@ def draw_facial_points(img, points, square_size):
 					(x + right, y + right), (0, 255, 0),
 					thickness = cv2.FILLED)
 
-if (len(sys.argv) == 2):
+if (len(sys.argv) == 3):
 	with tf.Graph().as_default():
 		gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.5)
 		sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options,
@@ -47,6 +47,14 @@ if (len(sys.argv) == 2):
 
 	capture = cv2.VideoCapture(sys.argv[1])
 
+
+	width = int(capture.get(cv2.CAP_PROP_FRAME_WIDTH))
+	height = int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
+	fps = int(capture.get(cv2.CAP_PROP_FPS))
+
+	fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+	out = cv2.VideoWriter(sys.argv[2], fourcc, fps, (width, height))
+
 	while (capture.isOpened()):
 		ret, frame = capture.read()
 
@@ -55,9 +63,11 @@ if (len(sys.argv) == 2):
 				pnet, rnet, onet, THRESHOLD, FACTOR)
 
 			draw_bounding_boxes(frame, boxes, 3)
-			draw_facial_points(frame, points, 5)
+			draw_facial_points(frame, points, 3)
+
+			out.write(frame)
 			
-			cv2.imshow(sys.argv[2], frame)
+			cv2.imshow(sys.argv[1], frame)
 
 			if cv2.waitKey(1) & 0xFF == ord('q'):
 				break
@@ -66,6 +76,7 @@ if (len(sys.argv) == 2):
 			break
 
 	capture.release()
+	out.release()
 
 	print("\n\nPress \'Enter\' to exit")
 	input()
@@ -74,5 +85,6 @@ if (len(sys.argv) == 2):
 
 else:
 	print(BREAK_LINE)
-	print("ERROR! 1 argument expected:\n" + 
-		"\t1 - Video filepath")
+	print("ERROR! 2 arguments expected:\n" + 
+		"\t1 - Video filepath" +
+		"\t2 - Output filepath")
