@@ -12,11 +12,16 @@ FACTOR = 0.709 # scale factor
 
 BREAK_LINE = "\n\n---------------------------------------\n\n"
 
+def get_box(boxes, index):
+	box = []
+	for i in range(4):
+		box.append(int(round(boxes[index][i])))
+	return box
+
+
 def draw_bounding_boxes(img, boxes, edge_width):
 	for i in range(len(boxes)):
-		box = []
-		for j in range(4):
-			box.append(int(round(boxes[i][j])))
+		box = get_box(boxes, i)
 		
 		#TODO: verify if edge is out of image range
 		cv2.rectangle(img, (box[0], box[1]), (box[2], box[3]),
@@ -36,6 +41,20 @@ def draw_facial_points(img, points, square_size):
 				cv2.rectangle(img, (x + left, y + left), 
 					(x + right, y + right), (0, 255, 0),
 					thickness = cv2.FILLED)
+
+def draw_label(img, boxes, labels):
+	if (len(boxes) == len(labels)):
+		for i in range(len(boxes)):
+			box = get_box(boxes, i)
+
+			#write label on top of bounding box
+			bottom_left = (box[0], box[1] - 10)
+
+			cv2.putText(img, labels[i], bottom_left, cv2.FONT_HERSHEY_SIMPLEX,
+				0.8, (0, 255, 0), thickness = 2)
+
+
+
 
 if (len(sys.argv) == 3):
 	with tf.Graph().as_default():
@@ -64,6 +83,7 @@ if (len(sys.argv) == 3):
 
 			draw_bounding_boxes(frame, boxes, 3)
 			draw_facial_points(frame, points, 3)
+			draw_label(frame, boxes, ["P2112"] * len(boxes))
 
 			out.write(frame)
 			
@@ -78,13 +98,25 @@ if (len(sys.argv) == 3):
 	capture.release()
 	out.release()
 
-	print("\n\nPress \'Enter\' to exit")
-	input()
+	#print("\n\nPress \'Enter\' to exit")
+	#input()
 	
 	cv2.destroyAllWindows()
+
+	import os
+
+	duration  = 75 # milliseconds
+	for j in range(2):
+		frequency = 1000 # Hertz
+		for i in range(7):
+			frequency -= 100
+			os.system('play -n synth %s sin %s' % (duration/1000, frequency))
+		for i in range(7):
+			frequency += 100
+			os.system('play -n synth %s sin %s' % (duration/1000, frequency))
 
 else:
 	print(BREAK_LINE)
 	print("ERROR! 2 arguments expected:\n" + 
 		"\t1 - Video filepath" +
-		"\t2 - Output filepath")
+		"\n\t2 - Output filepath")
