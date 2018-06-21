@@ -28,7 +28,7 @@ def draw_bounding_boxes(img, boxes, edge_width):
 			(0, 255, 0), edge_width )
 
 def draw_facial_points(img, points, square_size):
-	if len(points > 0):
+	if len(points) > 0:
 		#TODO: verify if points are out of image range when drawing
 		left = -1 * (square_size // 2)
 		right = square_size + left
@@ -53,6 +53,7 @@ def draw_label(img, boxes, labels):
 			cv2.putText(img, labels[i], bottom_left, cv2.FONT_HERSHEY_SIMPLEX,
 				0.8, (0, 255, 0), thickness = 2)
 
+def get_face_encondings():
 
 
 
