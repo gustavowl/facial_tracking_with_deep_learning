@@ -49,8 +49,6 @@ def draw_facial_points(img, points, square_size):
         right = square_size + left
         
         for i in range(len(points)):
-            print(points)
-            print(points[i])
             x = int(round(points[i].x))
             y = int(round(points[i].y))
 
@@ -61,13 +59,16 @@ def draw_facial_points(img, points, square_size):
 # This function will take an image and return its face encodings using the neural network
 def get_face_encodings(path_to_image):
     # Load image using scipy
-    image = scipy.misc.imread(path_to_image)
+    #image = scipy.misc.imread(path_to_image)
+    image = cv2.imread(path_to_image)
     # Detect faces using the face detector
     #detected_faces = face_detector(image, 1)
-    img = misc.imread(path_to_image)
-    detected_faces, points = detect_face.detect_face(img, minsize, pnet, rnet, onet,
+    detected_faces, points = detect_face.detect_face(cv2.cvtColor(
+        image, cv2.COLOR_BGR2RGB), minsize, pnet, rnet, onet,
         threshold, factor)
     
+    print(str(path_to_image))
+    print(detected_faces)
     left, top, right, bottom = get_points(detected_faces, 0)
     face_box = dlib.rectangle(left, top, right, bottom)
     #d = dlib.rectangle(1,2,3,4)
@@ -86,10 +87,10 @@ def get_face_encodings(path_to_image):
     shapes_points = [dlib.full_object_detection(face_box, face_traits)]
 
     #if ( str(path_to_image) == "pics/rakoruja.jpg"):
-    print("\n\n--------------------------------------------")
-    img = cv2.imread(path_to_image)
-    draw_facial_points(img, shapes_faces[0].parts(), 3)
-    cv2.imshow("asdf", img)
+    #print("\n\n--------------------------------------------")
+    #img = cv2.imread(path_to_image)
+    draw_facial_points(image, shapes_faces[0].parts(), 3)
+    cv2.imshow("asdf", image)
     cv2.waitKey(30)
     #input()
     #print(face_traits)
@@ -105,7 +106,7 @@ def get_face_encodings(path_to_image):
     print(shapes_faces)
     print("MTCNN")
     print(shapes_points)'''
-    print("--------------------------------------------")
+    #print("--------------------------------------------")
     # For every face detected, compute the face encodings
     return [np.array(face_recognition_model.compute_face_descriptor(image, face_pose, 1)) for face_pose in shapes_faces]
 
