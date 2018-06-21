@@ -80,13 +80,16 @@ if (len(sys.argv) == 3):
 
 		if ret == True:
 			#mtcnn is more accurate with rgb images
+			'''boxes, points = detect_face.detect_face(
+				cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), MINSIZE,
+				pnet, rnet, onet, THRESHOLD, FACTOR)'''
 			boxes, points = detect_face.detect_face(
 				cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), MINSIZE,
 				pnet, rnet, onet, THRESHOLD, FACTOR)
 
 			draw_bounding_boxes(frame, boxes, 3)
 			draw_facial_points(frame, points, 3)
-			draw_label(frame, boxes, ["P2112"] * len(boxes))
+			#draw_label(frame, boxes, ["P2112"] * len(boxes))
 
 			out.write(frame)
 			
