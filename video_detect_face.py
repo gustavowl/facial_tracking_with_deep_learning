@@ -53,7 +53,7 @@ def draw_label(img, boxes, labels):
 			cv2.putText(img, labels[i], bottom_left, cv2.FONT_HERSHEY_SIMPLEX,
 				0.8, (0, 255, 0), thickness = 2)
 
-def get_face_encondings():
+#def get_face_encondings():
 
 
 
@@ -79,7 +79,9 @@ if (len(sys.argv) == 3):
 		ret, frame = capture.read()
 
 		if ret == True:
-			boxes, points = detect_face.detect_face(frame, MINSIZE,
+			#mtcnn is more accurate with rgb images
+			boxes, points = detect_face.detect_face(
+				cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), MINSIZE,
 				pnet, rnet, onet, THRESHOLD, FACTOR)
 
 			draw_bounding_boxes(frame, boxes, 3)
