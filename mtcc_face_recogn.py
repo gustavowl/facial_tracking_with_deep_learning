@@ -5,6 +5,7 @@ import os
 import detect_face
 import tensorflow as tf
 from scipy import misc
+import cv2
 
 
 with tf.Graph().as_default():
@@ -41,6 +42,21 @@ def get_points(detected_faces, index):
     return int(round(detected_faces[index][0])), int(round(detected_faces[index][1])), int(round(detected_faces[index][2])), int(round(detected_faces[index][3]))
 
 
+def draw_facial_points(img, points, square_size):
+    if len(points) > 0:
+        #TODO: verify if points are out of image range when drawing
+        left = -1 * (square_size // 2)
+        right = square_size + left
+        
+        for i in range(len(points)):
+            print(points)
+            print(points[i])
+            x = int(round(points[i].x))
+            y = int(round(points[i].y))
+
+            cv2.rectangle(img, (x + left, y + left), 
+                (x + right, y + right), (0, 255, 0),
+                thickness = cv2.FILLED)
 
 # This function will take an image and return its face encodings using the neural network
 def get_face_encodings(path_to_image):
@@ -67,18 +83,29 @@ def get_face_encodings(path_to_image):
     for i in range(len_points):
         face_traits.append(dlib.point( round(float(points[i])) ,
             round(float(points[i + len_points]))))
-    shapes_points = dlib.full_object_detection(face_box, face_traits)
-    #print("\n\n--------------------------------------------")
+    shapes_points = [dlib.full_object_detection(face_box, face_traits)]
+
+    #if ( str(path_to_image) == "pics/rakoruja.jpg"):
+    print("\n\n--------------------------------------------")
+    img = cv2.imread(path_to_image)
+    draw_facial_points(img, shapes_faces[0].parts(), 3)
+    cv2.imshow("asdf", img)
+    cv2.waitKey(30)
+    #input()
     #print(face_traits)
     #print(points[0][0])
     #print("path to image: " + str(path_to_image))
-    #print("shapes_faces: " + str(shapes_faces[0]))
-    #print(left)
-    #print("shapes_faces_bounding box: " + str(shapes_faces[0].rect))
-    #print("mtcnn bounding box: " + str(face_box))
-    #print("num_parts: " + str(shapes_faces[0].num_parts))
-    #print("points of parts: " + str(shapes_faces[0].parts()))
-    #print("--------------------------------------------")
+    '''print("shapes_faces: " + str(shapes_faces[0]))
+    print(left)
+    print("shapes_faces_bounding box: " + str(shapes_faces[0].rect))
+    print("mtcnn bounding box: " + str(face_box))
+    print("num_parts: " + str(shapes_faces[0].num_parts))
+    print("points of parts: " + str(shapes_faces[0].parts()))
+    print("DLIB")
+    print(shapes_faces)
+    print("MTCNN")
+    print(shapes_points)'''
+    print("--------------------------------------------")
     # For every face detected, compute the face encodings
     return [np.array(face_recognition_model.compute_face_descriptor(image, face_pose, 1)) for face_pose in shapes_faces]
 
