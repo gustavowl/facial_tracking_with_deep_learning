@@ -4,7 +4,8 @@ import tensorflow as tf
 from scipy import misc
 import cv2
 import numpy as np
-
+import os
+import datetime
 
 MINSIZE = 10 # minimum size of face
 THRESHOLD = [ 0.6, 0.7, 0.7 ]  # three steps's threshold
@@ -55,9 +56,43 @@ def draw_label(img, boxes, labels):
 
 #def get_face_encondings():
 
+def time_now():
+	d = datetime.datetime.now()
+	ret = str(d.year)
+	ret += "_" + str(d.month)
+	ret += "_" + str(d.day)
+	ret += "_" + str(d.hour)
+	ret += "_" + str(d.minute)
+	ret += "_" + str(d.second)
+	mcrscnd = str(d.microsecond)
+	ret += "_" + '0' * (6 - len(mcrscnd)) + mcrscnd
+	return ret
+
+def save_image(directory, person_id, img):
+	path = os.path.join(directory, person_id)
+	if not os.path.exists(path):
+		os.makedirs(path)
+
+	cv2.imwrite(os.path.join(path, time_now() +
+		".jpg"), img)
+
+def crop_image(img, bounding_box):
+	return img[bounding_box[1]:bounding_box[3],
+		bounding_box[0]:bounding_box[2]]
+
+def make_noises():
+	duration  = 75 # milliseconds
+	for j in range(2):
+		frequency = 1000 # Hertz
+		for i in range(7):
+			frequency -= 100
+			os.system('play -n synth %s sin %s' % (duration/1000, frequency))
+		for i in range(7):
+			frequency += 100
+			os.system('play -n synth %s sin %s' % (duration/1000, frequency))
 
 
-if (len(sys.argv) == 3):
+if (len(sys.argv) == 4):
 	with tf.Graph().as_default():
 		gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.5)
 		sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options,
@@ -75,6 +110,8 @@ if (len(sys.argv) == 3):
 	fourcc = cv2.VideoWriter_fourcc(*'MJPG')
 	out = cv2.VideoWriter(sys.argv[2], fourcc, fps, (width, height))
 
+	first = True #TODO: delete me
+
 	while (capture.isOpened()):
 		ret, frame = capture.read()
 
@@ -91,9 +128,14 @@ if (len(sys.argv) == 3):
 			draw_facial_points(frame, points, 3)
 			#draw_label(frame, boxes, ["P2112"] * len(boxes))
 
-			out.write(frame)
+			#out.write(frame) TODO: uncomment me
 			
 			cv2.imshow(sys.argv[1], frame)
+
+			if (len(boxes) > 0 and first):
+				first = False
+				save_image(sys.argv[3], "p2112", 
+					crop_image(frame, get_box(boxes, 0)))
 
 			if cv2.waitKey(1) & 0xFF == ord('q'):
 				break
@@ -109,20 +151,11 @@ if (len(sys.argv) == 3):
 	
 	cv2.destroyAllWindows()
 
-	import os
-
-	duration  = 75 # milliseconds
-	for j in range(2):
-		frequency = 1000 # Hertz
-		for i in range(7):
-			frequency -= 100
-			os.system('play -n synth %s sin %s' % (duration/1000, frequency))
-		for i in range(7):
-			frequency += 100
-			os.system('play -n synth %s sin %s' % (duration/1000, frequency))
+	make_noises()
 
 else:
 	print(BREAK_LINE)
-	print("ERROR! 2 arguments expected:\n" + 
+	print("ERROR! 3 arguments expected:\n" + 
 		"\t1 - Video filepath" +
-		"\n\t2 - Output filepath")
+		"\n\t2 - Output filepath" +
+		"\n\t3 - Image database directory")
