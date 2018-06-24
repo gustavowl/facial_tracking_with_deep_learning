@@ -6,12 +6,19 @@ import cv2
 import numpy as np
 import os
 import datetime
+import dlib
+import scipy.misc
 
 MINSIZE = 10 # minimum size of face
 THRESHOLD = [ 0.6, 0.7, 0.7 ]  # three steps's threshold
 FACTOR = 0.709 # scale factor
+BREAK_LINE = "\n\n---------------------------------------"
+TOLERANCE = 0.54
 
-BREAK_LINE = "\n\n---------------------------------------\n\n"
+shape_predictor = dlib.shape_predictor('shape_predictor_68_face_landmarks.dat')
+face_recognition_model = dlib.face_recognition_model_v1('dlib_face_recognition_resnet_model_v1.dat')
+
+encodings_database = []
 
 def get_box(boxes, index):
 	box = []
@@ -19,29 +26,37 @@ def get_box(boxes, index):
 		box.append(int(round(boxes[index][i])))
 	return box
 
-
-def draw_bounding_boxes(img, boxes, edge_width):
+def draw_bounding_boxes(img, boxes, edge_thickness):
 	for i in range(len(boxes)):
 		box = get_box(boxes, i)
 		
 		#TODO: verify if edge is out of image range
 		cv2.rectangle(img, (box[0], box[1]), (box[2], box[3]),
-			(0, 255, 0), edge_width )
+			(0, 255, 0), edge_thickness )
 
 def draw_facial_points(img, points, square_size):
 	if len(points) > 0:
 		#TODO: verify if points are out of image range when drawing
 		left = -1 * (square_size // 2)
 		right = square_size + left
-		
-		for i in range(len(points[0])):
-			for j in range(len(points) // 2):
-				x = int(round(points[j][i]))
-				y = int(round(points[j + 5][i]))
+
+		if (isinstance(points[0], dlib.point)):
+			for i in range(len(points)):
+				x = int(round(points[i].x))
+				y = int(round(points[i].y))
 
 				cv2.rectangle(img, (x + left, y + left), 
 					(x + right, y + right), (0, 255, 0),
 					thickness = cv2.FILLED)
+		else:
+			for i in range(len(points[0])):
+				for j in range(len(points) // 2):
+					x = int(round(points[j][i]))
+					y = int(round(points[j + 5][i]))
+
+					cv2.rectangle(img, (x + left, y + left), 
+						(x + right, y + right), (0, 255, 0),
+						thickness = cv2.FILLED)
 
 def draw_label(img, boxes, labels):
 	if (len(boxes) == len(labels)):
@@ -54,7 +69,28 @@ def draw_label(img, boxes, labels):
 			cv2.putText(img, labels[i], bottom_left, cv2.FONT_HERSHEY_SIMPLEX,
 				0.8, (0, 255, 0), thickness = 2)
 
-#def get_face_encondings():
+def extract_face_features(img):
+	#expects cropped image, i.e. a bounding-boxed face
+	height, width, _ = img.shape
+	rectangle = dlib.rectangle(0, 0, width, height)
+
+	return shape_predictor(img, rectangle)
+
+def compare_encodings(base, target):
+	return (np.linalg.norm(base - target, axis=1) <= TOLERANCE)
+
+def find_match(base, target):
+	if len(base) > 0:
+		matches = compare_encodings(base, target)
+		
+		index = 0
+		for m in matches:
+			if m:
+				return index
+			index += 1
+
+	return -1
+
 
 def time_now():
 	d = datetime.datetime.now()
@@ -110,32 +146,80 @@ if (len(sys.argv) == 4):
 	fourcc = cv2.VideoWriter_fourcc(*'MJPG')
 	out = cv2.VideoWriter(sys.argv[2], fourcc, fps, (width, height))
 
-	first = True #TODO: delete me
-
 	while (capture.isOpened()):
 		ret, frame = capture.read()
 
 		if ret == True:
+			labels = []
+
 			#mtcnn is more accurate with rgb images
-			'''boxes, points = detect_face.detect_face(
-				cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), MINSIZE,
-				pnet, rnet, onet, THRESHOLD, FACTOR)'''
+			#for now, the points returned by mtcnn are not used
 			boxes, points = detect_face.detect_face(
 				cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), MINSIZE,
 				pnet, rnet, onet, THRESHOLD, FACTOR)
 
+			#processes each face detected
+			if (len(boxes) > 0):
+				for i in range(len(boxes)):
+					crop = crop_image(frame, get_box(boxes, i))
+					
+
+					feats = extract_face_features(crop)
+
+					encodings = np.array(
+						face_recognition_model.compute_face_descriptor(
+						crop, feats, 1))
+
+					match_index = find_match(encodings_database, encodings)
+
+					if match_index == -1:
+						#new persona detected. Add to database and
+						#save its image
+						encodings_database.append(encodings)
+
+						match_index = len(encodings_database) - 1
+						save_image(sys.argv[3], "p" + str(
+							match_index), crop)
+
+					labels.append('p' + str(match_index))
+					draw_facial_points(crop, feats.parts(), 3)
+					'''
+					height, width, _ = crop.shape
+					face_box = dlib.rectangle(0, 0, width, height)
+
+					face_traits = dlib.points()
+					len_points = len(points) // 2
+					for j in range(len_points):
+						face_traits.append(dlib.point( round(float(points[j][i])) ,
+							round(float(points[j + len_points][i]))))
+					shapes_points = dlib.full_object_detection(face_box, face_traits)
+
+					encodings = np.array(
+						face_recognition_model.compute_face_descriptor(
+						crop, shapes_points, 1))
+
+					match_index = find_match(encodings_database, encodings)
+
+					if match_index == -1:
+						#new persona detected. Add to database and
+						#save its image
+						encodings_database.append(encodings)
+
+						match_index = len(encodings_database) - 1
+						save_image(sys.argv[3], "p" + str(
+							match_index), crop)
+
+					labels.append('p' + str(match_index))
+					#draw_facial_points(crop, points, 3)
+					'''
+
 			draw_bounding_boxes(frame, boxes, 3)
 			draw_facial_points(frame, points, 3)
-			#draw_label(frame, boxes, ["P2112"] * len(boxes))
+			draw_label(frame, boxes, labels)
 
-			#out.write(frame) TODO: uncomment me
+			out.write(frame)
 			
 			cv2.imshow(sys.argv[1], frame)
-
-			if (len(boxes) > 0 and first):
-				first = False
-				save_image(sys.argv[3], "p2112", 
-					crop_image(frame, get_box(boxes, 0)))
 
 			if cv2.waitKey(1) & 0xFF == ord('q'):
 				break
