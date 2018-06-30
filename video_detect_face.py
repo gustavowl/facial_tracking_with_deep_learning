@@ -14,7 +14,8 @@ THRESHOLD = [ 0.6, 0.7, 0.7 ]  # three steps's threshold
 FACTOR = 0.709 # scale factor
 BREAK_LINE = "\n\n---------------------------------------"
 TOLERANCE = 0.54
-6
+DEBUG = True
+
 shape_predictor = dlib.shape_predictor('shape_predictor_68_face_landmarks.dat')
 face_recognition_model = dlib.face_recognition_model_v1('dlib_face_recognition_resnet_model_v1.dat')
 
@@ -77,7 +78,7 @@ def extract_face_features(img):
 	return shape_predictor(img, rectangle)
 
 def compare_encodings(base, target):
-	return np.linalg.norm(known_faces - face, axis=1)
+	return np.linalg.norm(base - target, axis=1)
 
 def find_match(base, target):
 	if len(base) > 0:
@@ -86,9 +87,9 @@ def find_match(base, target):
 		min_elem =  np.amin(matches)
 		if min_elem <= TOLERANCE:
 			min_index, = np.argwhere(matches == min_elem)
-			return min_index
+			return min_index, min_elem
 
-	return -1
+	return -1, 1
 
 
 def time_now():
@@ -143,12 +144,28 @@ if (len(sys.argv) == 4):
 	fps = int(capture.get(cv2.CAP_PROP_FPS))
 
 	fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+
+	if not os.path.exists(sys.argv[2][0:sys.argv[2].rfind('/')]):
+		os.makedirs(sys.argv[2][0:sys.argv[2].rfind('/')])
 	out = cv2.VideoWriter(sys.argv[2], fourcc, fps, (width, height))
+
+	frame_count = 0
+
+	debug_file = open("empty.txt", 'w')
+
+	if DEBUG:
+		debug_file = open(os.path.join(sys.argv[2][0:sys.argv[2].rfind('/')],
+			"debug.txt"), 'a')
+
 
 	while (capture.isOpened()):
 		ret, frame = capture.read()
 
 		if ret == True:
+			
+			if DEBUG:
+				frame_count += 1
+
 			labels = []
 
 			#mtcnn is more accurate with rgb images
@@ -169,7 +186,8 @@ if (len(sys.argv) == 4):
 						face_recognition_model.compute_face_descriptor(
 						crop, feats, 1))
 
-					match_index = find_match(encodings_database, encodings)
+					match_index, match_value = find_match(
+						encodings_database, encodings)
 
 					if match_index == -1:
 						#new persona detected. Add to database and
@@ -180,7 +198,10 @@ if (len(sys.argv) == 4):
 						save_image(sys.argv[3], "p" + str(
 							match_index), crop)
 
-					labels.append('p' + str(match_index))
+					#FIXME: DELETE NEXT LINE. DEBUGGING PURPOSES ONLY
+
+					labels.append('p' + str(match_index) + " (" +
+						"%.3f" % match_value + ")")
 					draw_facial_points(crop, feats.parts(), 3)
 					'''
 					height, width, _ = crop.shape
@@ -212,9 +233,23 @@ if (len(sys.argv) == 4):
 					#draw_facial_points(crop, points, 3)
 					'''
 
+					if DEBUG and len(labels) > 0:
+						#save debug info to file
+						if len(labels) == 1:
+							debug_file.write("---------------FRAME #" +
+								str(frame_count) + "---------------\n")
+
+						matches = compare_encodings(encodings_database, encodings)
+						debug_file.write('p' + str(match_index) + ": " +
+							str(matches) + "\n")
+
+
 			draw_bounding_boxes(frame, boxes, 3)
 			draw_facial_points(frame, points, 3)
 			draw_label(frame, boxes, labels)
+
+			if DEBUG and len(labels) > 0:
+				debug_file.write('\n')
 
 			out.write(frame)
 			
