@@ -14,7 +14,7 @@ THRESHOLD = [ 0.6, 0.7, 0.7 ]  # three steps's threshold
 FACTOR = 0.709 # scale factor
 BREAK_LINE = "\n\n---------------------------------------"
 TOLERANCE = 0.54
-
+6
 shape_predictor = dlib.shape_predictor('shape_predictor_68_face_landmarks.dat')
 face_recognition_model = dlib.face_recognition_model_v1('dlib_face_recognition_resnet_model_v1.dat')
 
@@ -77,17 +77,16 @@ def extract_face_features(img):
 	return shape_predictor(img, rectangle)
 
 def compare_encodings(base, target):
-	return (np.linalg.norm(base - target, axis=1) <= TOLERANCE)
+	return np.linalg.norm(known_faces - face, axis=1)
 
 def find_match(base, target):
 	if len(base) > 0:
 		matches = compare_encodings(base, target)
-		
-		index = 0
-		for m in matches:
-			if m:
-				return index
-			index += 1
+
+		min_elem =  np.amin(matches)
+		if min_elem <= TOLERANCE:
+			min_index, = np.argwhere(matches == min_elem)
+			return min_index
 
 	return -1
 
