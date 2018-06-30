@@ -47,14 +47,27 @@ def draw_facial_points(img, points, square_size):
         #TODO: verify if points are out of image range when drawing
         left = -1 * (square_size // 2)
         right = square_size + left
+
+        maximum = 3 * 255
+        stride = maximum / len(points)
+        colour = 0
         
         for i in range(len(points)):
             x = int(round(points[i].x))
             y = int(round(points[i].y))
 
+            c = int(round(colour))
+            blue = min(255, c)
+            c = max(0, c - 255)
+            green = min(255, c)
+            c = max(0, c - 255)
+            red = min(255, c)
+
             cv2.rectangle(img, (x + left, y + left), 
-                (x + right, y + right), (0, 255, 0),
+                (x + right, y + right), (blue, green, red),
                 thickness = cv2.FILLED)
+
+            colour += stride
 
 # This function will take an image and return its face encodings using the neural network
 def get_face_encodings(path_to_image):
@@ -67,8 +80,8 @@ def get_face_encodings(path_to_image):
         image, cv2.COLOR_BGR2RGB), minsize, pnet, rnet, onet,
         threshold, factor)
     
-    print(str(path_to_image))
-    print(detected_faces)
+    #print(str(path_to_image))
+    #print(detected_faces)
     left, top, right, bottom = get_points(detected_faces, 0)
     face_box = dlib.rectangle(left, top, right, bottom)
     #d = dlib.rectangle(1,2,3,4)
@@ -182,3 +195,43 @@ print("----------------------")
 print(image_filenames)
 print("----------------------")
 print(sorted(filter(lambda x: x.endswith('.jpg'), os.listdir('pics/'))))
+
+'''
+#delete this
+image = cv2.imread("snowl.jpg")
+# Detect faces using the face detector
+#detected_faces = face_detector(image, 1)
+detected_faces, points = detect_face.detect_face(cv2.cvtColor(
+    image, cv2.COLOR_BGR2RGB), minsize, pnet, rnet, onet,
+    threshold, factor)
+
+print(str(path_to_image))
+print(detected_faces)
+left, top, right, bottom = get_points(detected_faces, 0)
+face_box = dlib.rectangle(left, top, right, bottom)
+#d = dlib.rectangle(1,2,3,4)
+#print(str(path_to_image) + "----" + str(detected_faces[0]) + "----" + str(d))
+# Get pose/landmarks of those faces
+# Will be used as an input to the function that computes face encodings
+# This allows the neural network to be able to produce similar numbers
+#for faces of the same people, regardless of camera angle and/or face positioning in the image
+shapes_faces = [shape_predictor(image, face_box)]
+
+face_traits = dlib.points()
+len_points = len(points) // 2
+for i in range(len_points):
+    face_traits.append(dlib.point( round(float(points[i])) ,
+        round(float(points[i + len_points]))))
+shapes_points = [dlib.full_object_detection(face_box, face_traits)]
+
+#if ( str(path_to_image) == "pics/rakoruja.jpg"):
+#print("\n\n--------------------------------------------")
+#img = cv2.imread(path_to_image)
+draw_facial_points(image, shapes_faces[0].parts(), 3)
+cv2.imwrite(os.path.join("./", "OUTPUT-COLOURFUL" +
+    ".jpg"), image)
+cv2.waitKey(30)
+
+for i in range(len(shapes_faces[0].parts())):
+    print(str(i) + " - " + str(shapes_faces[0].parts()[i]))
+'''
