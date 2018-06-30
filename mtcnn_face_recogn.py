@@ -34,7 +34,7 @@ face_recognition_model = dlib.face_recognition_model_v1('dlib_face_recognition_r
 # To avoid false matches, use lower value
 # To avoid false negatives (i.e. faces of the same person doesn't match), use higher value
 # 0.5-0.6 works well
-TOLERANCE = 0.54
+TOLERANCE = 0.58
 
 #print("\n\n\n\n\n\n\n")
 
@@ -69,6 +69,20 @@ def draw_facial_points(img, points, square_size):
 
             colour += stride
 
+def substitute_points(dlib_points, mtcnn_points):
+    #face left, face right, nose, mouth left, mouth right
+    SUBSTITUTE = [0, 16, 30, 48, 54]
+    
+    new_points = dlib.points()
+    len_mtcnn = len(mtcnn_points) // 2
+
+    for i in range(len_mtcnn):
+        dlib_points[SUBSTITUTE[i]] = dlib.point(
+            round(float(mtcnn_points[i])),
+            round(float(mtcnn_points[i + len_mtcnn])))
+
+    return dlib_points
+
 # This function will take an image and return its face encodings using the neural network
 def get_face_encodings(path_to_image):
     # Load image using scipy
@@ -91,13 +105,8 @@ def get_face_encodings(path_to_image):
     # This allows the neural network to be able to produce similar numbers
     #for faces of the same people, regardless of camera angle and/or face positioning in the image
     shapes_faces = [shape_predictor(image, face_box)]
-
-    face_traits = dlib.points()
-    len_points = len(points) // 2
-    for i in range(len_points):
-        face_traits.append(dlib.point( round(float(points[i])) ,
-            round(float(points[i + len_points]))))
-    shapes_points = [dlib.full_object_detection(face_box, face_traits)]
+    mixed_points = substitute_points(shapes_faces[0].parts(), points)
+    shapes_faces = [dlib.full_object_detection(face_box, mixed_points)]
 
     #if ( str(path_to_image) == "pics/rakoruja.jpg"):
     #print("\n\n--------------------------------------------")
@@ -138,19 +147,15 @@ def compare_face_encodings(known_faces, face):
 def find_match(known_faces, names, face):
     # Call compare_face_encodings to get a list of True/False values indicating whether or not there's a match
     matches = compare_face_encodings(known_faces, face)
-
+    print("\n")
     print(matches)
     min_elem =  np.amin(matches)
-    print(min_elem)
     if min_elem <= TOLERANCE:
         #return min_index
         min_index, = np.argwhere(matches == min_elem)
-        print(min_index[0])
-        print('-------------------------\n')
         return names[min_index[0]]
     else:
         #return -1
-        print('-------------------------\n')
         return 'Not Found'    
 
 
@@ -195,7 +200,6 @@ for path_to_image in paths_to_test_images:
     match = find_match(face_encodings, names, face_encodings_in_image[0])
     # Print the path of test image and the corresponding match
     print(path_to_image, match)
-    print("\n")
 
 
 print("----------------------")
