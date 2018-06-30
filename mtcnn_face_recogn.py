@@ -129,7 +129,7 @@ def compare_face_encodings(known_faces, face):
     # Calculate norm for the differences with each known face
     # Return an array with True/Face values based on whether or not a known face matched with the given face
     # A match occurs when the (norm) difference between a known face and the given face is less than or equal to the TOLERANCE value
-    return (np.linalg.norm(known_faces - face, axis=1) <= TOLERANCE)
+    return np.linalg.norm(known_faces - face, axis=1)
 
 # This function returns the name of the person whose image matches with the given face (or 'Not Found')
 # known_faces is a list of face encodings
@@ -138,14 +138,20 @@ def compare_face_encodings(known_faces, face):
 def find_match(known_faces, names, face):
     # Call compare_face_encodings to get a list of True/False values indicating whether or not there's a match
     matches = compare_face_encodings(known_faces, face)
-    # Return the name of the first match
-    count = 0
-    for match in matches:
-        if match:
-            return names[count]
-        count += 1
-    # Return not found if no match found
-    return 'Not Found'
+
+    print(matches)
+    min_elem =  np.amin(matches)
+    print(min_elem)
+    if min_elem <= TOLERANCE:
+        #return min_index
+        min_index, = np.argwhere(matches == min_elem)
+        print(min_index[0])
+        print('-------------------------\n')
+        return names[min_index[0]]
+    else:
+        #return -1
+        print('-------------------------\n')
+        return 'Not Found'    
 
 
 # Get path to all the known images
@@ -189,6 +195,7 @@ for path_to_image in paths_to_test_images:
     match = find_match(face_encodings, names, face_encodings_in_image[0])
     # Print the path of test image and the corresponding match
     print(path_to_image, match)
+    print("\n")
 
 
 print("----------------------")
@@ -196,9 +203,9 @@ print(image_filenames)
 print("----------------------")
 print(sorted(filter(lambda x: x.endswith('.jpg'), os.listdir('pics/'))))
 
-'''
+
 #delete this
-image = cv2.imread("snowl.jpg")
+image = cv2.imread("pics/lotr.jpg")
 # Detect faces using the face detector
 #detected_faces = face_detector(image, 1)
 detected_faces, points = detect_face.detect_face(cv2.cvtColor(
@@ -234,4 +241,3 @@ cv2.waitKey(30)
 
 for i in range(len(shapes_faces[0].parts())):
     print(str(i) + " - " + str(shapes_faces[0].parts()[i]))
-'''
