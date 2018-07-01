@@ -13,7 +13,7 @@ MINSIZE = 10 # minimum size of face
 THRESHOLD = [ 0.6, 0.7, 0.7 ]  # three steps's threshold
 FACTOR = 0.709 # scale factor
 BREAK_LINE = "\n\n---------------------------------------"
-TOLERANCE = 0.75
+TOLERANCE = 0.54
 DEBUG = True
 debug_encodings = []
 
@@ -128,7 +128,7 @@ def get_farthest_vertex_from_point(point, dimensions):
 		dlib.point(dimensions.x, dimensions.y)]
 
 	for vertex in vertices:
-		new_dist = get_euclidian_distance(point, ret_point)
+		new_dist = get_euclidian_distance(point, vertex)
 		if  new_dist > dist:
 			dist = new_dist
 			ret_point = vertex
