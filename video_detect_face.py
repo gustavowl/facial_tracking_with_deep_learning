@@ -13,13 +13,15 @@ MINSIZE = 10 # minimum size of face
 THRESHOLD = [ 0.6, 0.7, 0.7 ]  # three steps's threshold
 FACTOR = 0.709 # scale factor
 BREAK_LINE = "\n\n---------------------------------------"
-TOLERANCE = 0.54
+TOLERANCE = 0.75
 DEBUG = True
+debug_encodings = []
 
 shape_predictor = dlib.shape_predictor('shape_predictor_68_face_landmarks.dat')
 face_recognition_model = dlib.face_recognition_model_v1('dlib_face_recognition_resnet_model_v1.dat')
 
 encodings_database = []
+encodings_database_position = []
 
 def get_box(boxes, index):
 	box = []
@@ -77,19 +79,69 @@ def extract_face_features(img):
 
 	return shape_predictor(img, rectangle)
 
-def compare_encodings(base, target):
-	return np.linalg.norm(base - target, axis=1)
+def compare_encodings(target):
+	return np.linalg.norm(encodings_database - target, axis=1)
 
-def find_match(base, target):
-	if len(base) > 0:
-		matches = compare_encodings(base, target)
+def find_match(target, target_bounding_box, frame_dimensions):
+	target_position = get_mean_point(target_bounding_box)
+	
+	if len(encodings_database) > 0 and len(encodings_database) == len(encodings_database_position):
+		farthest_vertex = get_farthest_vertex_from_point(target_position,
+			frame_dimensions)
+		max_euclid_dist = get_euclidian_distance(target_position, farthest_vertex)
 
-		min_elem =  np.amin(matches)
+		encodings = compare_encodings(target)
+
+		#compare_encodigs_with_distance
+		for i in range(len(encodings_database_position)):
+			distance = get_euclidian_distance(target_position,
+				encodings_database_position[i])
+			dist_prop = get_distance_proportion(max_euclid_dist, distance)
+			encodings[i] = encodings[i] / dist_prop
+
+		if DEBUG:
+			del debug_encodings[:]
+			for enc in encodings:
+				debug_encodings.append(enc)
+
+		min_elem =  np.amin(encodings)
 		if min_elem <= TOLERANCE:
-			min_index, = np.argwhere(matches == min_elem)
+			min_index, = np.argwhere(encodings == min_elem)
+			#updates position in database
+			encodings_database_position[min_index[0]] = target_position
 			return min_index, min_elem
 
+	#new persona detected. Add to database
+	encodings_database.append(target)
+	encodings_database_position.append(target_position)
 	return -1, 1
+
+def get_mean_point(bounding_box):
+	x = int(round( (bounding_box[0] + bounding_box[2]) / 2 ))
+	y = int(round( (bounding_box[1] + bounding_box[3]) / 2 ))
+	return dlib.point(x, y)
+
+def get_farthest_vertex_from_point(point, dimensions):
+	ret_point = dlib.point(0, 0)
+	dist = get_euclidian_distance(point, ret_point)
+	vertices = [dlib.point(0, dimensions.y), dlib.point(dimensions.x, 0),
+		dlib.point(dimensions.x, dimensions.y)]
+
+	for vertex in vertices:
+		new_dist = get_euclidian_distance(point, ret_point)
+		if  new_dist > dist:
+			dist = new_dist
+			ret_point = vertex
+	return ret_point
+
+def get_euclidian_distance(point_a, point_b):
+	x = (point_a.x - point_b.x)**2
+	y = (point_a.y - point_b.y)**2
+	return (x + y)**0.5
+
+#does probability describe better?
+def get_distance_proportion(farthest_distance, distance):
+	return 1 - 0.999 / farthest_distance * distance
 
 
 def time_now():
@@ -142,6 +194,7 @@ if (len(sys.argv) == 4):
 	width = int(capture.get(cv2.CAP_PROP_FRAME_WIDTH))
 	height = int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
 	fps = int(capture.get(cv2.CAP_PROP_FPS))
+	dlib_frame_dim = dlib.point(width, height)
 
 	fourcc = cv2.VideoWriter_fourcc(*'MJPG')
 
@@ -177,8 +230,8 @@ if (len(sys.argv) == 4):
 			#processes each face detected
 			if (len(boxes) > 0):
 				for i in range(len(boxes)):
-					crop = crop_image(frame, get_box(boxes, i))
-					
+					box = get_box(boxes, i)
+					crop = crop_image(frame, box)
 
 					feats = extract_face_features(crop)
 
@@ -187,12 +240,10 @@ if (len(sys.argv) == 4):
 						crop, feats, 1))
 
 					match_index, match_value = find_match(
-						encodings_database, encodings)
+						encodings, box, dlib_frame_dim)
 
 					if match_index == -1:
-						#new persona detected. Add to database and
-						#save its image
-						encodings_database.append(encodings)
+						#new persona detected. save its image
 
 						match_index = len(encodings_database) - 1
 						save_image(sys.argv[3], "p" + str(
@@ -209,9 +260,8 @@ if (len(sys.argv) == 4):
 							debug_file.write("---------------FRAME #" +
 								str(frame_count) + "---------------\n")
 
-						matches = compare_encodings(encodings_database, encodings)
 						debug_file.write('p' + str(match_index) + ": " +
-							str(matches) + "\n")
+							str(debug_encodings) + "\n")
 
 
 			draw_bounding_boxes(frame, boxes, 3)
