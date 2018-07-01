@@ -198,40 +198,10 @@ if (len(sys.argv) == 4):
 						save_image(sys.argv[3], "p" + str(
 							match_index), crop)
 
-					#FIXME: DELETE NEXT LINE. DEBUGGING PURPOSES ONLY
-
+					#FIXME: Delete probability?
 					labels.append('p' + str(match_index) + " (" +
 						"%.3f" % match_value + ")")
 					draw_facial_points(crop, feats.parts(), 3)
-					'''
-					height, width, _ = crop.shape
-					face_box = dlib.rectangle(0, 0, width, height)
-
-					face_traits = dlib.points()
-					len_points = len(points) // 2
-					for j in range(len_points):
-						face_traits.append(dlib.point( round(float(points[j][i])) ,
-							round(float(points[j + len_points][i]))))
-					shapes_points = dlib.full_object_detection(face_box, face_traits)
-
-					encodings = np.array(
-						face_recognition_model.compute_face_descriptor(
-						crop, shapes_points, 1))
-
-					match_index = find_match(encodings_database, encodings)
-
-					if match_index == -1:
-						#new persona detected. Add to database and
-						#save its image
-						encodings_database.append(encodings)
-
-						match_index = len(encodings_database) - 1
-						save_image(sys.argv[3], "p" + str(
-							match_index), crop)
-
-					labels.append('p' + str(match_index))
-					#draw_facial_points(crop, points, 3)
-					'''
 
 					if DEBUG and len(labels) > 0:
 						#save debug info to file
@@ -263,9 +233,6 @@ if (len(sys.argv) == 4):
 
 	capture.release()
 	out.release()
-
-	#print("\n\nPress \'Enter\' to exit")
-	#input()
 	
 	cv2.destroyAllWindows()
 
