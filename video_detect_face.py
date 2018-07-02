@@ -13,7 +13,7 @@ MINSIZE = 10 # minimum size of face
 THRESHOLD = [ 0.6, 0.7, 0.7 ]  # three steps's threshold
 FACTOR = 0.709 # scale factor
 BREAK_LINE = "\n\n---------------------------------------"
-TOLERANCE = 0.54
+TOLERANCE = 0.75
 DEBUG = True
 debug_encodings = []
 
@@ -111,7 +111,7 @@ def find_match(target, target_bounding_box, frame_dimensions):
 			min_index = min_index[0]
 			encodings_database[min_index] = target
 			encodings_database_position[min_index] = target_position
-			return min_index, min_elem
+			return [min_index], min_elem
 
 	#new persona detected. Add to database
 	encodings_database.append(target)
@@ -184,7 +184,7 @@ def make_noises():
 
 if (len(sys.argv) == 4):
 	with tf.Graph().as_default():
-		gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.5)
+		gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.75)
 		sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options,
 			log_device_placement=False))
 		with sess.as_default():
