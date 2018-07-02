@@ -84,7 +84,7 @@ def compare_encodings(target):
 
 def find_match(target, target_bounding_box, frame_dimensions):
 	target_position = get_mean_point(target_bounding_box)
-	
+
 	if len(encodings_database) > 0 and len(encodings_database) == len(encodings_database_position):
 		farthest_vertex = get_farthest_vertex_from_point(target_position,
 			frame_dimensions)
@@ -108,7 +108,9 @@ def find_match(target, target_bounding_box, frame_dimensions):
 		if min_elem <= TOLERANCE:
 			min_index, = np.argwhere(encodings == min_elem)
 			#updates position in database
-			encodings_database_position[min_index[0]] = target_position
+			min_index = min_index[0]
+			encodings_database[min_index] = target
+			encodings_database_position[min_index] = target_position
 			return min_index, min_elem
 
 	#new persona detected. Add to database
